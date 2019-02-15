@@ -67,3 +67,41 @@ sugar$Date <- as.Date(as_factor(sugar$Date))
 head(sugar$Date)
 View(sugar)
 
+# Homework week 2:
+# Q1
+df <- read_csv("x,y,z\n1,2,'a,b'", quote="'")
+df
+# Answer: read_csv("x,y,z\n1,2,'a,b'", quote="'")
+
+# Q2
+url <- paste0("http://s3.amazonaws.com/assets.datacamp.com/",
+              "production/course_1561/datasets/national_debt.csv")
+
+debt <- read_csv(url, col_types = cols(V1 = col_date(format = "%m/%d/%y"), 
+                                       V2 = col_number()))
+str(debt)
+summary(debt)
+avg <- with(debt, mean(V2))
+avg
+format(avg, scientific=FALSE)
+# Answer: "11024070595071"
+
+# Q3
+url1 <- paste0("http://s3.amazonaws.com/assets.datacamp.com/",
+               "production/course_1561/datasets/weather.csv")
+
+weather <- read_csv(url1)
+date <- parse_date(weather$date, format = "%m/%d/%Y")
+date
+View(weather$date)
+# Answer: parse_date(weather$date, format = "%m/%d/%Y")
+
+# Q4 
+View(mbta)
+totals17 <- list(totals = mbta[12, 3:14])
+totals17
+totals <- as.numeric(unlist(totals17))
+totals
+avg <- mean(totals)
+avg
+# Answer: 1227.169
