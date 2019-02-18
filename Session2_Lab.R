@@ -96,8 +96,11 @@ date
 View(weather$date)
 # Answer: parse_date(weather$date, format = "%m/%d/%Y")
 
-# Q4 
+# Q4
 View(mbta)
+# Could not import the Excel file from url
+# had to save Excel file manually in R project folder then ask R to import dataset
+
 totals17 <- list(totals = mbta[12, 3:14])
 totals17
 totals <- as.numeric(unlist(totals17))
