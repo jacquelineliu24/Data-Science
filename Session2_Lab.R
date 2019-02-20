@@ -86,6 +86,10 @@ avg
 format(avg, scientific=FALSE)
 # Answer: "11024070595071"
 
+# Solution: 
+debt$V2 <- parse_number(debt$V2)
+mean(debt$V2)
+
 # Q3
 url1 <- paste0("http://s3.amazonaws.com/assets.datacamp.com/",
                "production/course_1561/datasets/weather.csv")
@@ -108,3 +112,11 @@ totals
 avg <- mean(totals)
 avg
 # Answer: 1227.169
+
+# Solution: 
+# Can't read excel files directly into R - use the download.file() function
+url <- #paste the url 
+download.file(url, "mbta.xlsx")
+mbta <- read_excel("mbta.xlsx", range = "C13:N13", col_names = FALSE)
+mbta_t <- t(mbta)
+mean(mbta_t)
