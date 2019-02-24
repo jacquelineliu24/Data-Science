@@ -1,6 +1,9 @@
 # Week 3: Data Cleaning 
 library(tidyverse)
+library(tidyr)
 library(readr)
+library(dplyr)
+library(readxl)
 
 url <- paste0("https://raw.githubusercontent.com/", 
               "mhaber/AppliedDataScience/master/",
@@ -90,4 +93,25 @@ stocks %>%
 # tribble() produces easier to read row-by-row layout of a tibble
 # tidyr does not know how to handle merged cells, formatted cells etc. 
 
+# Assignment 3
+# Q1: 
+# Answer: c. Multiple values are stored in one column 
 
+# Q2: 
+url <- paste0("http://s3.amazonaws.com/assets.datacamp.com/",
+              "production/course_1294/datasets/", 
+              "mbta.xlsx")
+download.file(url, "mbta.xlsx")
+mbta <- read_excel("mbta.xlsx", range = "B2:BH13", col_names = TRUE)
+mbta <- mbta[c(2:10),]
+mbta <- mbta[-c(6),]
+View(mbta)
+mbtatidy <- mbta %>% .[c(3:5),] %>%
+  gather(key = date, value = passengers, -mode) %>%
+  separate(date, into = c("year", "month"), sep = "-") %>%
+  mutate(passengers = parse_number(passengers))
+head(mbtatidy)
+mbtatidy
+mbtatotal <- sum(mbtatidy$passengers)
+mbtatotal
+# 49858.76; in thousands = 49859
