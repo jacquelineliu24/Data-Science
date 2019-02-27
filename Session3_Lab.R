@@ -115,3 +115,39 @@ mbtatidy
 mbtatotal <- sum(mbtatidy$passengers)
 mbtatotal
 # 49858.76; in thousands = 49859
+
+# Solution: 
+url <- paste0("http://s3.amazonaws.com/assets.datacamp.com/",
+              "production/course_1294/datasets/", 
+              "mbta.xlsx")
+download.file(url, "mbta.xlsx")
+mbta1 <- read_excel("mbta.xlsx", skip = 1, range = cell_cols(2:60))
+mbta_tidy <- mbta1 %>% tidyr::gather(`2007-01`:`2011-10`, key = year, value = passengers, convert = TRUE)
+# `` to specify that it is a column name because R thinks it's a number 2007
+# "" vs. '' no real difference 
+mbta_tidy <- mbta_tidy %>%  tidyr::separate(year, into = c("year", "month"))
+head(mbta_tidy)
+
+mbta_tidy <- mbta_tidy %>%  tidyr::spread(mode, passengers)
+head(mbta_tidy)
+
+# Keep wanted columns 
+mbta_tidy <- mbta_tidy %>% .[,c(1:2, 6:8)]
+head(mbta_tidy)
+
+# Gather rail modes
+mbta_tidy <- mbta_tidy %>% tidyr::gather(`Commuter Rail`:`Light Rail`, key = "rail_type", value = passengers)
+head(mbta_tidy)
+
+# Compute sum 
+mbta_tidy <- mbta_tidy %>% 
+  dplyr::mutate(passengers = as.numeric(passengers)) %>% 
+  dplyr::summarise(sum(passengers))
+mbta_tidy
+
+# Using filter() in mbta_tidy 
+mbta_tidy %>% filter(mode %in% c("Commuter Rail", "Heavy Rail", "Light Rail"))
+#or 
+mbta_tidy %>% filter(mode=="Commuter Rail" | mode=="Heavy Rail" | mode=="Light Rail")
+# or use grepl to filter mode as long as it contains the string "Rail"
+mbta_tidy %>% filter(grepl("Rail", mode))
