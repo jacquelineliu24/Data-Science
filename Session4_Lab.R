@@ -171,12 +171,11 @@ summary(tailnum)
 carriers <- flights %>% 
   select(carrier, distance, dep_delay) %>% 
   group_by(carrier) %>% 
-  summarize(sumdist = sum(distance), mean = mean(dep_delay, na.rm = TRUE)) %>% 
-  arrange(desc(sumdist), desc(mean), carrier)
+  summarize(ddist = mean(dep_delay, na.rm = TRUE)/sum(distance)) %>% 
+  arrange(desc(ddist), carrier)
 
 carriers
-# Taking into account the distance travelled - longest/ shortest distance?? 
-# For the carrier that travelled the longest distance, UA had the longest mean delay. 
+# Carrier OO had the longest mean delay per distance travelled at 0.000785 min/km 
 
 # Q6: How many flights (as integer) were delayed by at least 2 hours, but made up over 1 hour in flight?
 flights3 <- flights %>% 
