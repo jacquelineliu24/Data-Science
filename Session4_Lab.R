@@ -133,38 +133,61 @@ destdist <- flights2 %>%
   summarize(sdev = sd(distance)) %>% arrange(desc(sdev), destf)
 destdist
 
+# or 
+flights %>% group_by(dest) %>% summarise(spread = sd(distance)) %>% top_n(2, spread)
+# top_n - positive number is top n; negative number is bottom n
 # SAN has the second largest standard deviation in terms of distance of 10.3
 
 # Q2: How many carriers (as integer) had an average (mean) arrival delay of 
 # more than 20 minutes in the summer (June to August)?
 
-q2 <- flights %>% select(carrier, dep_delay, month) %>% 
+q2 <- flights %>% select(carrier, arr_delay, month) %>% 
   group_by(carrier) %>% 
   filter(between(month, 6, 8)) %>% 
-  summarize(mean = mean(dep_delay, na.rm = TRUE)) %>% 
+  summarize(mean = mean(arr_delay, na.rm = TRUE)) %>% 
   filter(mean >= 20)
 
 count(q2)
+
+# Solution: 
+flights %>% filter(month %in% c(6, 7, 8)) %>% 
+  group_by(carrier) %>% 
+  summarize(mean = mean(arr_delay, na.rm = TRUE)) %>% 
+  filter(mean > 20) %>% n_distinct()
+
+# 4 
 
 # Q3: What is the average (mean) departure delay of American Airlines (AA) 
 # in minutes? Round to the nearest integer.
 AA <- flights %>% 
   select(carrier, dep_delay) %>% 
   filter(carrier == "AA")
-
 summary(AA)
 # Mean dep_delay for AA is 8.586 = 9 (rounded to nearest integer)
+
+# Solution: 
+flights %>% 
+  filter(carrier=="AA") %>% 
+  summarise(delay = round(mean(dep_delay, na.rm = TRUE)))
 
 # Q4: Which plane (tailnum) has traveled the longest overall distance in March
 tailnum <- flights %>% 
   select(tailnum, distance, month) %>% 
-  filter(month==3) %>% 
-  arrange(desc(distance), tailnum)
+  filter(month==3) %>%
+  group_by(tailnum) %>% summarize(dist = sum(distance)) %>% 
+  arrange(desc(dist), tailnum)
 
 tailnum
 summary(tailnum)
-# Maximum distance is 4983. 
-# Tailnum N382HA travelled the longest distance in March
+# NA tailnumber had the longest overall distance 
+# Followed by N324AA. 
+
+# Solution:
+flights %>% 
+  filter(!is.na(tailnum), month ==3) %>% 
+  group_by(tailnum) %>% 
+  summarise(dist = sum(distance)) %>% 
+  arrange(desc(dist))
 
 # Q5: Which carrier (two letter abbreviation) has the longest average (mean) 
 # departure delay when you take into account the distance that carrier traveled?
@@ -177,11 +200,25 @@ carriers <- flights %>%
 carriers
 # Carrier OO had the longest mean delay per distance travelled at 0.000785 min/km 
 
+carriers1 <- flights %>% 
+  mutate(del_dist = dep_delay / distance) %>% 
+  group_by(carrier) %>%
+  summarise(del_dist_car = mean(del_dist, na.rm=TRUE))%>% 
+  arrange(desc(del_dist_car))
+
+carriers1
+# YV had the longest average delay per distance at 0.0618 min/km
+
 # Q6: How many flights (as integer) were delayed by at least 2 hours, but made up over 1 hour in flight?
 flights3 <- flights %>% 
-  select(ends_with("delay"), air_time) %>% 
-  mutate(gain = arr_delay - dep_delay) %>% 
-  filter(dep_delay >=120 & gain >= 60)
-
+  mutate(makeup = dep_delay - arr_delay) %>% 
+  filter(dep_delay >=120 & makeup > 60)
 count(flights3)
-# 211 flights were delayed by at least 2 hours, but made up over 1 hour in flight 
+
+# or
+flights %>% 
+  mutate(makeup = dep_delay - arr_delay) %>% 
+  filter(dep_delay >=120 & makeup > 60) %>% n_distinct()
+# n_distinct() counts number of unique entries
+
+# Solution: 14 flights 
