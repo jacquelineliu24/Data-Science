@@ -19,6 +19,9 @@ library(dplyr)
 library(VIM)
 library(naniar)
 library(finalfit)
+library(simputation)
+library(factoextra)
+library(ggbiplot)
 ```
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
@@ -81,7 +84,8 @@ data <- DBI::dbGetQuery(conn,
                         IndicatorCode='TT.PRI.MRCH.XD.WD' OR
                         IndicatorCode='BX.TRF.PWKR.CD.DT' OR
                         IndicatorCode='DT.ODA.ODAT.GN.ZS' OR
-                        IndicatorCode='SM.POP.REFG'")
+                        IndicatorCode='SM.POP.REFG' OR
+                        IndicatorCode='SL.TLF.TOTL.IN'")
 ```
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
@@ -98,7 +102,7 @@ str(df)
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
 # Recode variables
-df <- df %>% dplyr::rename("Poverty"="SI.POV.DDAY", "Gini"="SI.POV.GINI", "Fertility" = "SP.DYN.TFRT.IN", "School"="SE.ENR.PRSC.FM.ZS", "LFRatio"="SL.TLF.CACT.FM.ZS", "DependencyOld"="SP.POP.DPND.OL", "AgriLand"="AG.LND.AGRI.ZS", "Electricity"="EG.ELC.ACCS.ZS", "GDP"="NY.GDP.MKTP.CD","AgriValue"="NV.AGR.TOTL.ZS", "IndValue"="NV.IND.TOTL.ZS", "ServValue"="NV.SRV.TETC.ZS", "GNIpc"="NY.GNP.PCAP.PP.CD", "GovExpense"="GC.XPN.TOTL.CN", "NetBarter"="TT.PRI.MRCH.XD.WD", "Remittance"="BX.TRF.PWKR.CD.DT", "ODA"="DT.ODA.ODAT.GN.ZS", "Refugee"="SM.POP.REFG")
+df <- df %>% dplyr::rename("Poverty"="SI.POV.DDAY", "Gini"="SI.POV.GINI", "Fertility" = "SP.DYN.TFRT.IN", "School"="SE.ENR.PRSC.FM.ZS", "LFRatio"="SL.TLF.CACT.FM.ZS", "DependencyOld"="SP.POP.DPND.OL", "AgriLand"="AG.LND.AGRI.ZS", "Electricity"="EG.ELC.ACCS.ZS", "GDP"="NY.GDP.MKTP.CD","AgriValue"="NV.AGR.TOTL.ZS", "IndValue"="NV.IND.TOTL.ZS", "ServValue"="NV.SRV.TETC.ZS", "GNIpc"="NY.GNP.PCAP.PP.CD", "GovExpense"="GC.XPN.TOTL.CN", "NetBarter"="TT.PRI.MRCH.XD.WD", "Remittance"="BX.TRF.PWKR.CD.DT", "ODA"="DT.ODA.ODAT.GN.ZS", "Refugee"="SM.POP.REFG", "PopTotal"="SL.TLF.TOTL.IN")
 ```
 
 ```{r}
@@ -134,7 +138,83 @@ gg_miss_var(df1) + labs(y = "Number of Missings", x = "Variable Names", title = 
 ```
 
 ```{r}
-
+# Convert character vectors to factors
+df1$CountryName <- factor(df1$CountryName)
+df1$CountryCode <- factor(df1$CountryCode)
+str(df1)
 ```
+
+```{r}
+# Impute missing values for ODA using median values by country name
+library(simputation)
+medimp <- impute_median(df1, ODA ~ CountryName)
+```
+
+```{r}
+# Impute missing values for other variables using moving average 
+library(imputeTS)
+test <- na.ma(medimp[, -c(1:3, 6)],k=2, weighting="linear")
+str(test)
+```
+
+```{r}
+# Duplicate dataframe to replace NA values
+df2 <- test
+df2$CountryName <- df1$CountryName
+df2$CountryCode <- df1$CountryCode
+df2$Year <- df1$Year
+df2$ODA <- df1$ODA
+df2$ODA <- df2$ODA %>% replace_na(0)
+sum(is.na(df2))
+```
+
+
+## Clustering 
+
+```{r}
+# Scale variables 
+kdf <- df2 %>% filter(Year==1990)
+kdf1 <- kdf
+kdf1 <- scale(kdf[, -c(19:21)])
+kdf1 <- as.data.frame(kdf1)
+kdf1$CountryName <- kdf$CountryName
+kdf1$CountryCode <- kdf$CountryCode
+kdf1$Year <- kdf$Year
+summary(kdf1)
+```
+
+```{r}
+kdf1 <- kdf1[, -c(21:22)]
+rownames(kdf1) <- kdf1$CountryName
+kdf1 <- kdf1[,-c(20)]
+str(kdf1)
+```
+
+
+```{r}
+set.seed(2)
+km.out=kmeans(kdf1, 9, nstart=25)
+km.out
+```
+
+
+```{r}
+fviz_cluster(km.out, data=kdf1)
+```
+
+```{r}
+set.seed(2)
+fviz_nbclust(kdf1, kmeans, method = "wss")
+```
+
+
+```{r}
+pcadf <- prcomp(kdf1)
+summary(pcadf)
+```
+
+
+
+
 
 
