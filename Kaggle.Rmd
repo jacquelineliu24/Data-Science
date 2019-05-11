@@ -1,0 +1,140 @@
+---
+title: "Kaggle"
+author: "Jacqueline Liu"
+date: "08/05/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require("knitr")
+opts_knit$set(root.dir = "/Users/jacquelineliu/Desktop/Hertie_SS2019/Data Science/DataScience/")
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+library(tidyverse)
+library(DBI)
+library(RSQLite)
+library(dplyr)
+library(VIM)
+library(naniar)
+library(finalfit)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Connect to database
+conn <- RSQLite::dbConnect(SQLite(), "database.sqlite")
+dbListTables(conn)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Save relevant tables
+indicators <- tbl(conn, "Indicators")
+country <- tbl(conn, "Country")
+series <- tbl(conn, "Series")
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# List of unique indicators 
+list <- DBI::dbGetQuery(conn, 
+                        "SELECT DISTINCT IndicatorCode
+                        FROM indicators")
+list
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# List of unique series names
+listseries <- DBI::dbGetQuery(conn,
+                              "SELECT DISTINCT Topic
+                              FROM series")
+listseries
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+listcountry <- DBI::dbGetQuery(conn, 
+                        "SELECT DISTINCT CountryName 
+                        FROM indicators")
+listcountry
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Extract relevant indicators from indicators table
+data <- DBI::dbGetQuery(conn, 
+                        "SELECT CountryName, CountryCode, IndicatorCode, Year, Value
+                        FROM indicators
+                        WHERE IndicatorCode='SI.POV.DDAY' OR
+                        IndicatorCode='SI.POV.GINI' OR
+                        IndicatorCode='SP.DYN.TFRT.IN' OR
+                        IndicatorCode='SE.ENR.PRSC.FM.ZS' OR
+                        IndicatorCode='SL.TLF.CACT.FM.ZS' OR
+                        IndicatorCode='SP.POP.DPND.OL' OR
+                        IndicatorCode='AG.LND.AGRI.ZS' OR
+                        IndicatorCode='EG.ELC.ACCS.ZS' OR
+                        IndicatorCode='GC.XPN.TOTL.CN' OR
+                        IndicatorCode='NY.GDP.MKTP.CD' OR
+                        IndicatorCode='NV.AGR.TOTL.ZS' OR
+                        IndicatorCode='NV.IND.TOTL.ZS' OR
+                        IndicatorCode='NV.SRV.TETC.ZS' OR
+                        IndicatorCode='NY.GNP.PCAP.PP.CD' OR
+                        IndicatorCode='TT.PRI.MRCH.XD.WD' OR
+                        IndicatorCode='BX.TRF.PWKR.CD.DT' OR
+                        IndicatorCode='DT.ODA.ODAT.GN.ZS' OR
+                        IndicatorCode='SM.POP.REFG'")
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Disconnect from database
+dbDisconnect(conn)
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Spread data so that indicators are column names
+df <- data %>% spread(IndicatorCode, Value)
+str(df)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Recode variables
+df <- df %>% dplyr::rename("Poverty"="SI.POV.DDAY", "Gini"="SI.POV.GINI", "Fertility" = "SP.DYN.TFRT.IN", "School"="SE.ENR.PRSC.FM.ZS", "LFRatio"="SL.TLF.CACT.FM.ZS", "DependencyOld"="SP.POP.DPND.OL", "AgriLand"="AG.LND.AGRI.ZS", "Electricity"="EG.ELC.ACCS.ZS", "GDP"="NY.GDP.MKTP.CD","AgriValue"="NV.AGR.TOTL.ZS", "IndValue"="NV.IND.TOTL.ZS", "ServValue"="NV.SRV.TETC.ZS", "GNIpc"="NY.GNP.PCAP.PP.CD", "GovExpense"="GC.XPN.TOTL.CN", "NetBarter"="TT.PRI.MRCH.XD.WD", "Remittance"="BX.TRF.PWKR.CD.DT", "ODA"="DT.ODA.ODAT.GN.ZS", "Refugee"="SM.POP.REFG")
+```
+
+```{r}
+summary(df)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, echo=FALSE}
+# Separate regions from countries
+regions <- df %>% filter(CountryCode=="ARB"| CountryCode=="CSS"| CountryCode=="EAS"| CountryCode=="EAP"| CountryCode=="EMU"|CountryCode=="ECS"|CountryCode=="ECA"|CountryCode=="EUU"|CountryCode=="FCS"|CountryCode=="HPC"|CountryCode=="HIC"|CountryCode=="NOC"|CountryCode=="OEC"|CountryCode=="LCN"|CountryCode=="LAC"|CountryCode=="LDC"|CountryCode=="LMY"|CountryCode=="LIC"|CountryCode=="LMC"|CountryCode=="MEA"|CountryCode=="MNA"|CountryCode=="MIC"|CountryCode=="NAC"|CountryCode=="OED"|CountryCode=="OSS"|CountryCode=="PSS"|CountryCode=="SST"|CountryCode=="SAS"|CountryCode=="SSF"|CountryCode=="SSA"|CountryCode=="UMC"|CountryCode=="WLD")
+
+# Remove regions from df
+df1 <- df %>% filter(CountryCode!="ARB"& CountryCode!="CSS"& CountryCode!="EAS"& CountryCode!="EAP"& CountryCode!="EMU"&CountryCode!="ECS"&CountryCode!="ECA"&CountryCode!="EUU"&CountryCode!="FCS"&CountryCode!="HPC"&CountryCode!="HIC"&CountryCode!="NOC"&CountryCode!="OEC"&CountryCode!="LCN"&CountryCode!="LAC"&CountryCode!="LDC"&CountryCode!="LMY"&CountryCode!="LIC"&CountryCode!="LMC"&CountryCode!="MEA"&CountryCode!="MNA"&CountryCode!="MIC"&CountryCode!="NAC"&CountryCode!="OED"&CountryCode!="OSS"&CountryCode!="PSS"&CountryCode!="SST"&CountryCode!="SAS"&CountryCode!="SSF"&CountryCode!="SSA"&CountryCode!="UMC"&CountryCode!="WLD")
+```
+
+```{r}
+df1 <- df1 %>% filter(LFRatio!="NA")
+```
+
+
+
+
+```{r}
+summary(df1)
+```
+
+## Missing data
+
+
+
+```{r}
+missing_plot(df1) + labs(x = "Observation Id", title = "Structure of Missings", subtitle = "Missings are more common for some variables and observations") + theme(axis.text.y = element_text(size = 4))
+gg_miss_var(df1) + labs(y = "Number of Missings", x = "Variable Names", title = "Number of Missings in each Variable", subtitle = "There is a significant amount of missings in some variables") + theme(axis.text.y = element_text(size = 3))
+```
+
+```{r}
+
+```
+
+
